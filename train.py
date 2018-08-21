@@ -3,22 +3,25 @@ import os
 import json
 import random
 import torch
+from torch.autograd import Variable
 
 def formData(ques, answerChoices, answerChoice, word_to_index):
     
     ques_idxs = [word_to_index[w] for w in ques.split()]
     choices = []
-    for choice in answerChoice:
+    for choice in answerChoices:
         ans_idxs = [word_to_index[w] for w in choice.split()]
-        choices.append(torch.LongTensor(ans_idxs))
+        choices.append(Variable(torch.LongTensor(ans_idxs)))
     
     answerChoice = ord(answerChoice)-ord('A')
     label = [0]*4
     label[answerChoice] = 1
-    return torch.LongTensor(ques_idxs), choices, torch.LongTensor(label)
+    return Variable(torch.LongTensor(ques_idxs)), choices, Variable(torch.LongTensor(label))
 
 def train(model, train_data, n_epoch, word_to_index, memory, loss_function, optimizer):
+    print "In Training"
     for epoch in range(n_epoch):
+        print "Epoch", epoch
         random.shuffle(train_data)
         for data in train_data:
             currData = data.split('+')

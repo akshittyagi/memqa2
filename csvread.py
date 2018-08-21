@@ -25,7 +25,7 @@ def parseQuestionsAndChoices(ques):
             
             idx = temp
             choice = choice.lower()
-            choice = choice[1:-1]
+            choice = choice.strip()
             choices += choice
             choices += '/'
         else:
@@ -47,8 +47,8 @@ with open(path) as fil:
         answer = row[4]
         count += 1
         ques, choices = parseQuestionsAndChoices(ques)
-        data[row[0]] = ques.lower()[:-1] + '+' + choices + '+' + answer
-
+        data[row[0]] = ques.lower().strip() + '+' + choices + '+' + answer
+        print ques.lower().strip() + '+' + choices + '+' + answer
 
 pkl.dump(data, open(path+'_.pkl', 'w'))
 

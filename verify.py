@@ -10,9 +10,9 @@ def verifyDataSetFile(path):
         print key
         print value
         count += 1
-
+        print value
     print count
 
 
 if __name__=="__main__":
-    verifyDataSetFile('/Users/akshittyagi/memqa/Omnibus-Gr04-NDMC-Test.csv_FORMATTED.pkl')
+    verifyDataSetFile('Omnibus-Gr04-NDMC-Train.csv_.pkl')
