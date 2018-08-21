@@ -17,9 +17,8 @@ def formData(ques, answerChoices, answerChoice, word_to_index):
     label[answerChoice] = 1
     return torch.LongTensor(ques_idxs), choices, torch.LongTensor(label)
 
-def train(model, train_data, n_epoch, word_to_index):
+def train(model, train_data, n_epoch, word_to_index, memory, loss_function, optimizer):
     for epoch in range(n_epoch):
-        
         random.shuffle(train_data)
         for data in train_data:
             currData = data.split('+')
@@ -27,7 +26,16 @@ def train(model, train_data, n_epoch, word_to_index):
             answerChoices = currData[1].split('/')
             answerChoice = currData[2]
             ques, answerChoices, answerChoice = formData(ques, answerChoices, answerChoice, word_to_index)
-    
+            qna = []
+            qna.append(ques)
+            qna.append(answerChoices)
+            pred = model(memory, qna)
+
+            loss = loss_function(pred, answerChoice)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
 
 def test(model, data, w2i, batch_size, task_id):
     model.eval()

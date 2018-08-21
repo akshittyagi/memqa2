@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from utils import getCombination
 
 class Network(nn.Module):
-    def __init__(self, hops=2, dropout=0.1, embedding_size, vocab_size):
+    def __init__(self, embedding_size, vocab_size, hops=2, dropout=0.1):
         self.hops = hops
         self.embedding_size = embedding_size
         
