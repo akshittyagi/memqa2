@@ -3,6 +3,7 @@ import pickle as pkl
 
 import torch
 import torch.nn as nn
+from torch.autograd import Variable
 
 from memnn import Network
 from prepareForLSTM import createTupleSentences
@@ -19,7 +20,7 @@ def prepareMemory(memory, word_to_index):
     ret = []
     for sentence in memory:
         idxs = [word_to_index[w] for w in sentence.split()]
-        ret.append(torch.LongTensor(idxs))
+        ret.append(Variable(torch.LongTensor(idxs)))
     return ret
 
 def run(grad='4'):

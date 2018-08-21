@@ -33,7 +33,7 @@ def train(model, train_data, n_epoch, word_to_index, memory, loss_function, opti
             qna.append(ques)
             qna.append(answerChoices)
             pred = model(memory, qna)
-
+            import ipdb; ipdb.set_trace()
             loss = loss_function(pred, answerChoice)
             optimizer.zero_grad()
             loss.backward()
