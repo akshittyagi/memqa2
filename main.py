@@ -8,6 +8,8 @@ from torch.autograd import Variable
 from memnn import Network
 from prepareForLSTM import createTupleSentences
 from train import train
+from utils import to_cuda
+
 dirname = os.getcwd()
 elementary = 'Omnibus-Gr04-NDMC-'
 middle = 'ScienceQuestionsV2-Middle-NDMC-'
@@ -20,7 +22,7 @@ def prepareMemory(memory, word_to_index):
     ret = []
     for sentence in memory:
         idxs = [word_to_index[w] for w in sentence.split()]
-        ret.append(Variable(torch.LongTensor(idxs)))
+        ret.append(Variable(to_cuda(torch.LongTensor(idxs))))
     return ret
 
 def run(grad='4'):
@@ -48,6 +50,8 @@ def run(grad='4'):
 
     tupleData, word_to_index, memory = createTupleSentences(dirKB,grad+tupleKb,save=False, word_to_index=word_to_index)
     print "Tuple Set Created"
+    word_to_index['<pad>'] = len(word_to_index)
+
 
     memory = prepareMemory(tupleData, word_to_index)
     model = Network(mem_emb_size=300, vocab_size=len(word_to_index), embedding_size=300, hops=1)

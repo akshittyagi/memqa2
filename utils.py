@@ -51,3 +51,10 @@ def getCombination(memory, option):
 
 
     return ret     
+
+def to_cuda(t):
+    if torch.cuda.is_available():
+        return t.cuda()
+    else:
+        return t
+    
