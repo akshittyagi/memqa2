@@ -4,3 +4,6 @@ TupleInfKB
 data
 out*
 *.pyc
+.~*
+*#
+*_
