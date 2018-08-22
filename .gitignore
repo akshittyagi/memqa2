@@ -7,3 +7,5 @@ out*
 .~*
 *#
 *_
+.vector*
+core*

@@ -52,15 +52,17 @@ def run(grad='4'):
     print "Tuple Set Created"
     word_to_index['<pad>'] = len(word_to_index)
 
+    pkl.dump(tupleData, open('MemoryString.pkl', 'w'))
 
     memory = prepareMemory(tupleData, word_to_index)
+    
     model = Network(mem_emb_size=300, vocab_size=len(word_to_index), embedding_size=300, hops=1)
     if torch.cuda.is_available():
         model.cuda()
     optimizer = torch.optim.SGD(model.parameters(), lr=4e-4)
     loss_function = nn.CrossEntropyLoss()
 
-    train(model, trainData, 10, word_to_index, memory, loss_function, optimizer)
+    train(model, trainData, 5, word_to_index, memory, loss_function, optimizer)
 
 
 if __name__=="__main__":
