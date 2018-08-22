@@ -3,7 +3,7 @@ import json
 import csv
 import pickle as pkl
 
-path = 'ScienceQuestionsV2-Middle-NDMC-Test.csv'
+path = 'Omnibus-Gr04-NDMC-Train.csv'
 
 def parseQuestionsAndChoices(ques):
 
@@ -15,7 +15,6 @@ def parseQuestionsAndChoices(ques):
         ch1 = ques[idx]
         ch2 = ques[idx+1]
         ch3 = ques[idx+2]
-
         if(ch1 == '(' and ch2 in optionChoices and ch3==')'):
             temp = idx + 3
             choice = ""
@@ -47,8 +46,9 @@ with open(path) as fil:
         answer = row[4]
         count += 1
         ques, choices = parseQuestionsAndChoices(ques)
-        data[row[0]] = ques.lower().strip() + '+' + choices + '+' + answer
-        print ques.lower().strip() + '+' + choices + '+' + answer
+        value = ques.lower().strip() + '+' + choices + '+' + answer
+        data[row[0]] = value
+        print value
 
 pkl.dump(data, open(path+'_.pkl', 'w'))
 
