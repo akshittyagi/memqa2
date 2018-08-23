@@ -33,17 +33,18 @@ class Network(nn.Module):
         #sim for mem_q, mem_a
         self.W = Variable(to_cuda(torch.nn.init.xavier_uniform(torch.FloatTensor(mem_emb_size,mem_emb_size)).unsqueeze(0)))
 
-    def forward(self, memory, ques, answerChoices):
+    def forward(self, memoryBatch, ques, answerChoices):
         
         batch_size = len(ques)
         U = self.U.repeat(batch_size, 1, 1)
         V = self.V.repeat(batch_size, 1, 1)
         W = self.W.repeat(batch_size, 1, 1)
 
-        assert(len(ques)==len(answerChoices))
+        # assert(len(ques)==len(answerChoices)==len(memoryBatch))
 
-        allMemIndices = getCombination(memory, option=6)
+        # allMemIndices = getCombination(memoryBatch, option=6)
         
+        #import ipdb; ipdb.set_trace()
         
         u = self.dropout(self.B(ques)) # u: batch_size * max_qlength * embedding_size
         _, u = self.lstmLayer(u) 
@@ -54,15 +55,26 @@ class Network(nn.Module):
         for choice in answerChoices:
             a.append(self.C(choice).sum(dim=1))
         o_A = []
+        # for hop in range(self.hops):
+        #     allMemEmbed = [] 
+        #     for mem in allMemIndices[:500]:
+        #         # import ipdb; ipdb.set_trace()
+        #         allMemEmbed.append(self.dropout(self.A[hop](mem)).sum(dim=0))
+
+        #     allMemEmbed = torch.stack(allMemEmbed, dim=0).unsqueeze(0)
+        #     allMemEmbed = allMemEmbed.repeat(batch_size, 1, 1)
         for hop in range(self.hops):
             allMemEmbed = [] 
-            for mem in allMemIndices:
-                allMemEmbed.append(self.dropout(self.A[hop](mem)).sum(dim=0))
-
-            allMemEmbed = torch.stack(allMemEmbed, dim=0).unsqueeze(0)
-            allMemEmbed = allMemEmbed.repeat(batch_size, 1, 1)
+            for memSentences in memoryBatch:
+                # import ipdb; ipdb.set_trace()
+                currMemEmbed = []
+                for mem in memSentences:
+                    currMemEmbed.append(self.dropout(self.A[hop](mem)).sum(dim=0))
+                allMemEmbed.append(torch.stack(currMemEmbed, dim=0))
+            import ipdb; ipdb.set_trace()
+            allMemEmbed = torch.stack(allMemEmbed, dim=0)
             p_q = torch.bmm(allMemEmbed,torch.bmm(U, u.unsqueeze(1).transpose(1,2))).squeeze(2) # p_q: batch_size * size_of_memory
-            
+
             p_q = F.log_softmax(p_q, dim=1) 
             minVals = torch.min(p_q, dim=1)[0].unsqueeze(1)
             p_q = p_q - minVals

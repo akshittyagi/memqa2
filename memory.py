@@ -92,14 +92,14 @@ def relevantMemory(memoryVecFp, trainDataVecFp, outFp):
 
 def main():
     memoryFp = 'MemoryString.pkl'
-    dataFp = 'Omnibus-Gr04-NDMC-Train.csv_.pkl'
+    dataFp = 'Omnibus-Gr04-NDMC-Test.csv_.pkl'
 
-    print('Getting vectors of memory...')
-    torchFp = memoryFp + ".torch_"
-    vectorsFp = memoryFp + ".vectors_"
-    convertToTorchText(memoryFp, torchFp,Type='list')
-    data = loadDataset(torchFp)
-    getVectors(data, vectorsFp)
+    # print('Getting vectors of memory...')
+    # torchFp = memoryFp + ".torch_"
+    # vectorsFp = memoryFp + ".vectors_"
+    # convertToTorchText(memoryFp, torchFp,Type='list')
+    # data = loadDataset(torchFp)
+    # getVectors(data, vectorsFp)
     
     print('Getting vectors of data...')
     cleanDataFp = dataFp + ".clean_"
@@ -113,7 +113,7 @@ def main():
     print('Getting relevant memory...')
     memoryVecFp = memoryFp + ".vectors_"
     dataVecFp = dataFp + ".vectors_"
-    outFp = "relevantMemory.pkl"
+    outFp = "relevantMemoryTest.pkl"
     relevantMemory(memoryVecFp, dataVecFp, outFp)
 
     return
