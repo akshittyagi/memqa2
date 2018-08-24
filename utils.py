@@ -2,7 +2,60 @@ import os
 import torch
 import pickle as pkl
 import torch.nn as nn
+from torch.autograd import Variable
+import ipdb
     
+# def prepareMemory(memory, word_to_index):
+    # ipdb.set_trace()
+    # ret = dict()
+    # for key in memory:
+        # tuples = memory[key]
+        # tuples = [" ".join(t) for t in tuples]
+
+        # idxs = [word_to_index[w] for w in tuples.split()]
+        # ret[key] = Variable(to_cuda(torch.LongTensor(idxs)))
+    # return ret
+
+def buildDictionary(sentences):
+    word_to_index = dict()
+    for sentence in sentences:
+        for word in sentence.split():
+            if(word not in word_to_index):
+                word_to_index[word] = len(word_to_index)
+
+    word_to_index['<pad>'] = len(word_to_index)
+    word_to_index['<unk>'] = len(word_to_index)
+    return word_to_index
+
+def processSentence(sentence):           
+    currSent = sentence.split('+')
+    
+    question = currSent[0]
+    answers = currSent[1].split('/')
+    gt = currSent[2]
+
+    return question, answers, gt
+
+def getWordsForm(formSentence):
+    question, answers, _ = processSentence(formSentence)
+    words = list()
+    for word in question.split():
+        words.append(word)
+    for answer in answers:
+        for word in answer.split():
+            words.append(word)
+
+    return words
+
+def getWordsTuple(tuples):
+    words = list()
+    for Tuple in tuples:
+        for elem in Tuple:
+            for word in elem.split():
+                words.append(word)
+        
+    return words
+
 def getCombination(memory, option):
     ret = []
     if option==1:

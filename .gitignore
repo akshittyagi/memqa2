@@ -9,3 +9,8 @@ out*
 *_
 .vector*
 core*
+*.bin
+*.txt
+exp/
+*.zip
+.*

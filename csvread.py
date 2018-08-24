@@ -3,7 +3,7 @@ import json
 import csv
 import pickle as pkl
 
-path = 'Omnibus-Gr04-NDMC-Train.csv'
+path = 'Omnibus-Gr04-NDMC-Test.csv'
 
 def parseQuestionsAndChoices(ques):
 

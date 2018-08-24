@@ -3,6 +3,7 @@ import torch
 import string
 import re
 import pickle as pkl
+import ipdb
 
 pattern = re.compile("[a-zA-Z]")
 
@@ -52,5 +53,51 @@ def createTupleSentences(dirname, filename, save=False, word_to_index = {}):
         pkl.dump(word_to_index, open(path+'_TKBDICT.pkl', 'w'))
     return trainingData, word_to_index, memory
 
+def combinedTuples(tupleFileName, dataFileName):
+    data = pkl.load(open(dataFileName, 'r'))
+    questions = dict()
+    for key, value in data.iteritems():
+        question = value.split('+')[0]
+        questions[question] = key
+
+    ctf = open(tupleFileName, 'r')
+    tupleData = dict()
+    for line in ctf:
+        line = line.strip('\n')
+        if(line == ""):
+            question = None
+            exId = None
+            continue
+        if(exId == None):
+            question = line[0:line.find('(A)')].lower().strip()
+            if(question not in questions):
+                present = False
+            else:
+                exId = questions[question]
+                present = True
+                tupleData[exId] = []
+            continue
+        if(present == False):
+            continue
+
+        fact = line.split('\t')[0]
+        tuples = [t.lower() for t in fact.split('|')]
+        tupleData[exId].append(tuples)
+
+    # ipdb.set_trace()
+    missingValues = set(data.keys()) - set(tupleData.keys())
+    for v in missingValues:
+        tupleData[v] = tupleData[tupleData.keys()[0]]
+
+    # for v in tupleData:
+        # tupleData[v] = tupleData[tupleData.keys()[0]]
+
+    print('Kept random values for %d keys'%len(missingValues))
+
+    assert len(data) == len(tupleData) # All questions must be found
+    return tupleData
+
 if __name__ == '__main__':
-    createTupleSentences('TupleInfKB', '4thGradeOpenIE.txt', save=True)
+    # createTupleSentences('TupleInfKB', '4thGradeOpenIE.txt', save=True)
+    combinedTuples('Omnibus4_Combined_Tuples.txt', 'Omnibus-Gr04-NDMC-Train.csv_.pkl')
+
