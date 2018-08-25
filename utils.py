@@ -38,14 +38,14 @@ def getCombination(memory, option):
             temp = memory[idx]
             temp2 = memory[idx+1]
             temp3 = memory[idx+2]
-            ret.append(max(temp2, temp3) + temp, option=no_grad)
+            ret.append(max(temp2, temp3) + temp, requires_grad=False)
     elif option==5:
         idx = 0
         while( idx < len(memory) ):
             temp = memory[idx]
             temp2 = memory[idx+1]
             temp3 = memory[idx+2]
-            ret.append(max(temp2, temp3, temp), option=no_grad)
+            ret.append(max(temp2, temp3, temp), requires_grad=False)
     elif option==6:
         ret = memory
 

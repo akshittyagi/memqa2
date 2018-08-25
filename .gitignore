@@ -12,4 +12,9 @@ core*
 rts*
 *_Model
 *.bin
+*.rpm
+*.txt
+text8
+*.word2vec
+
 

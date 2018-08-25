@@ -60,7 +60,7 @@ def run(grad='4', mode='train'):
         memory = prepareMemory(tupleData, word_to_index)
         pkl.dump(memory, open('MemorySent.pkl', 'w'))
 
-        model = Network(mem_emb_size=300, vocab_size=len(word_to_index), embedding_size=300, hops=1)
+        model = Network(mem_emb_size=600, vocab_size=len(word_to_index), embedding_size=600, hops=1)
 
         # filename = 'GoogleNews-vectors-negative300.bin'
         # modelW2V = KeyedVectors.load_word2vec_format(filename, binary=True)
@@ -83,18 +83,27 @@ def run(grad='4', mode='train'):
 
         if torch.cuda.is_available():
             model.cuda()
-        optimizer = torch.optim.SGD(model.parameters(), lr=4e-4)
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
         loss_function = nn.CrossEntropyLoss()
 
-        train(model, training_data, 10, word_to_index, memory, loss_function, optimizer)
-        torch.save(model, grad+"_Model")
+        train(model, training_data, 70, word_to_index, memory, loss_function, optimizer)
+        torch.save(model.state_dict(), grad+"_Model")
+        test_data_path = os.path.join(dirname, elementary+'Test'+postfix)
+        testing_data = pkl.load(open(test_data_path, 'r'))
+
+        testData = []
+        for key, value in testing_data.iteritems():
+            sentence = value
+            testData.append(sentence)
+        test(model, testData, word_to_index, memory, batch_size=16, pathForRelMem='relevantMemoryTest.pkl')
+        
     elif mode == 'test':
         test_data_path = os.path.join(dirname, elementary+'Test'+postfix)
         tupleData = pkl.load(open('MemoryString.pkl', 'r'))
         word_to_index = pkl.load((open('Dict.pkl', 'r')))
-        model = Network(mem_emb_size=300, vocab_size=len(word_to_index), embedding_size=300, hops=1)
-        model.load_state_dict(torch.load(grad+"_Model"))
-        
+        model = Network(mem_emb_size=600, vocab_size=len(word_to_index), embedding_size=600, hops=1)
+        # model.load_state_dict(torch.load(grad+"_Model"))
+        model.load_state_dict(torch.load(grad+"_Model")['state_dict'])
         memory = pkl.load(open('MemorySent.pkl', 'r'))
 
         testing_data = pkl.load(open(test_data_path, 'r'))
@@ -103,8 +112,8 @@ def run(grad='4', mode='train'):
         for key, value in testing_data.iteritems():
             sentence = value
             testData.append(sentence)
-        test(model, testData, word_to_index, memory, batch_size=16, pathForRelMem='relMemTest.pkl')
-
+        test(model, testData, word_to_index, memory, batch_size=16, pathForRelMem='relevantMemoryTest.pkl')
+        
 if __name__=="__main__":
     # run(grad='4', mode='test')
     run()

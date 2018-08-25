@@ -67,11 +67,13 @@ class Network(nn.Module):
             allMemEmbed = [] 
             for memSentences in memoryBatch:
                 # import ipdb; ipdb.set_trace()
-                currMemEmbed = []
-                for mem in memSentences:
-                    currMemEmbed.append(self.dropout(self.A[hop](mem)).sum(dim=0))
-                allMemEmbed.append(torch.stack(currMemEmbed, dim=0))
-            import ipdb; ipdb.set_trace()
+                # currMemEmbed = []
+                # for mem in memSentences:
+                #     currMemEmbed.append(self.dropout(self.A[hop](mem)).sum(dim=0))
+                # allMemEmbed.append(torch.stack(currMemEmbed, dim=0))
+                # import ipdb; ipdb.set_trace()
+                allMemEmbed.append(self.dropout(self.A[hop](memSentences)).sum(dim=1))
+            # import ipdb; ipdb.set_trace()
             allMemEmbed = torch.stack(allMemEmbed, dim=0)
             p_q = torch.bmm(allMemEmbed,torch.bmm(U, u.unsqueeze(1).transpose(1,2))).squeeze(2) # p_q: batch_size * size_of_memory
 
