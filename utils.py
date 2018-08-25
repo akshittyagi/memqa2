@@ -4,7 +4,13 @@ import pickle as pkl
 import torch.nn as nn
 from torch.autograd import Variable
 import ipdb
-    
+import spacy    
+
+nlp = spacy.load('en')
+
+def tokenize(sentence):
+    doc = nlp(sentence.decode('utf8'), disable=['parser', 'tagger', 'ner'])
+    return " ".join(token.lemma_ for token in doc)
 # def prepareMemory(memory, word_to_index):
     # ipdb.set_trace()
     # ret = dict()
@@ -30,8 +36,8 @@ def buildDictionary(sentences):
 def processSentence(sentence):           
     currSent = sentence.split('+')
     
-    question = currSent[0]
-    answers = currSent[1].split('/')
+    question = tokenize(currSent[0])
+    answers = [tokenize(a) for a in currSent[1].split('/')]
     gt = currSent[2]
 
     return question, answers, gt

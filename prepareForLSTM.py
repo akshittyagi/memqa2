@@ -82,6 +82,8 @@ def combinedTuples(tupleFileName, dataFileName):
 
         fact = line.split('\t')[0]
         tuples = [t.lower() for t in fact.split('|')]
+        tuples = [tuples[0], tuples[1], " ".join(tuples[2:])] # Convert tuples to triples by joining all objects
+        assert len(tuples) == 3
         tupleData[exId].append(tuples)
 
     # ipdb.set_trace()

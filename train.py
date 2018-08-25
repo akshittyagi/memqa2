@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import numpy as np
 import ipdb
 
-from utils import to_cuda
+from utils import to_cuda, processSentence
 
 def toIdxs(text, word_to_index):
     
@@ -37,6 +37,17 @@ def formData(ques, answerChoices, answerChoice, word_to_index):
     # label[answerChoice] = 1
     label = answerChoice
     return Variable(to_cuda(torch.LongTensor(ques_idxs))), choices, Variable(to_cuda(torch.LongTensor([label])))
+
+def getTuples(memoryQuestion):
+    subjects = []
+    relations = []
+    objects = []
+    for elem in memoryQuestion:
+        subjects.append(elem[0])
+        relations.append(elem[1])
+        objects.append(elem[2])
+
+    return subjects, relations, objects
 
 def formMemory(memoryBatch, word_to_index):
     ret = []
@@ -80,11 +91,12 @@ def pad_answers(answerChoicesB, pad_index):
         currChoices = []
         for j in range(len(answerChoicesB[i])):
             if len(answerChoicesB[i][j]) == 0:
-                print "NULL"
-                print answerChoicesB[i]
-                continue
-            padLength = maxLength - len(answerChoicesB[i][j])
-            currChoices.append(torch.nn.ConstantPad1d((0,padLength),pad_index) (answerChoicesB[i][j]))
+                currChoices.append(to_cuda(Variable(torch.LongTensor(maxLength).fill_(pad_index))))
+                # print "NULL"
+                # print answerChoicesB[i]
+            else:
+                padLength = maxLength - len(answerChoicesB[i][j])
+                currChoices.append(torch.nn.ConstantPad1d((0,padLength),pad_index) (answerChoicesB[i][j]))
         padMemory = mainMaxLength - len(currChoices)
         if(padMemory != 0):
             for i in range(padMemory):
@@ -93,7 +105,8 @@ def pad_answers(answerChoicesB, pad_index):
         padChoicesB.append(torch.stack(currChoices, dim=0))
     return torch.stack(padChoicesB, dim = 0)
 
-def train(model, train_data, dev_data, n_epoch, word_to_index, trainMemory, devMemory, loss_function, optimizer, batch_size=16, args=None):
+def train(model, train_data, dev_data, n_epoch, word_to_index, trainMemory, devMemory, loss_function, \
+        optimizer, scheduler, batch_size=16, args=None):
 
     print "In Training"
     training_data = train_data.copy()
@@ -110,6 +123,13 @@ def train(model, train_data, dev_data, n_epoch, word_to_index, trainMemory, devM
 
     best_acc = 0
     for epoch in range(n_epoch):
+        for param_group in optimizer.param_groups:
+            lr = param_group['lr'] 
+            break
+
+        if(lr >= 0.01 and scheduler != None):
+            scheduler.step()
+
         print "Epoch", epoch
 
         for train_data in list([train_data_three, train_data_four]):
@@ -125,19 +145,25 @@ def train(model, train_data, dev_data, n_epoch, word_to_index, trainMemory, devM
                 answerChoicesB = []
                 answerChoiceB = []
                 relMemoryBatch = []
+                subjectsBatch = []
+                relationsBatch = []
+                objectsBatch = []
                 for key, data in trainBatch:
-                    currData = data.split('+')
-                    ques = currData[0]
-                    answerChoices = currData[1].split('/')
-                    answerChoice = currData[2]
+                    ques, answerChoices, answerChoice = processSentence(data)
                     ques, answerChoices, answerChoice = formData(ques, answerChoices, answerChoice, word_to_index)
                     quesB.append(ques)
                     answerChoicesB.append(answerChoices)
                     answerChoiceB.append(answerChoice)
                     relMem = trainMemory[key]
-                    relMemoryBatch.append(relMem)
+                    subjects, relations, objects = getTuples(relMem)
+                    subjectsBatch.append(subjects)
+                    relationsBatch.append(relations)
+                    objectsBatch.append(objects)
                 
-                relMemoryBatch = formMemory(relMemoryBatch, word_to_index)
+                subjectsBatch = formMemory(subjectsBatch, word_to_index)
+                relationsBatch = formMemory(relationsBatch, word_to_index)
+                objectsBatch = formMemory(objectsBatch, word_to_index)
+                relMemoryBatch = [subjectsBatch, relationsBatch, objectsBatch]
 
                 padAnswerChoices = pad_answers(answerChoicesB, word_to_index['<pad>'])
                 padQuestions = pad_questions(quesB, word_to_index['<pad>'])
@@ -151,16 +177,21 @@ def train(model, train_data, dev_data, n_epoch, word_to_index, trainMemory, devM
                 # print "PRED BATCH ----------"
                 # print pred_batch
                 # print "---------------------"
-        # test(model, train_data, word_to_index, trainMemory, batch_size, 'relevantMemory.pkl')
-        acc = test(model, dev_data, word_to_index, devMemory, batch_size)
-        if(acc > best_acc):
+        if(epoch % 5 == 0):
+            train_acc = test(model, training_data, word_to_index, trainMemory, batch_size)
+            print('Training accuracy = %f'%train_acc)
+
+        dev_acc = test(model, dev_data, word_to_index, devMemory, batch_size)
+        print('Dev accuracy = %f'%dev_acc)
+        if(dev_acc > best_acc):
             torch.save({'state_dict':model.state_dict()}, os.path.join(args.exp_dir,args.grade+"_Model"))
-            best_acc = acc
+            best_acc = dev_acc
 
     print('Best Accuracy = %f'%best_acc)
     return
 
 def test(model, data, word_to_index, memory, batch_size):
+    model.eval()
     print "In Testing"
 
     score = 0
@@ -188,19 +219,28 @@ def test(model, data, word_to_index, memory, batch_size):
             answerChoicesB = []
             answerChoiceB = []
             relMemoryBatch = []
+            subjectsBatch = []
+            relationsBatch = []
+            objectsBatch = []
             for key, element in testBatch:
-                currData = element.split('+')
-                ques = currData[0]
-                answerChoices = currData[1].split('/')
-                answerChoice = currData[2]
+                ques, answerChoices, answerChoice = processSentence(element)
                 ques, answerChoices, answerChoice = formData(ques, answerChoices, answerChoice, word_to_index)
                 quesB.append(ques)
                 answerChoicesB.append(answerChoices)
                 answerChoiceB.append(answerChoice)
                 relMem = memory[key]
-                relMemoryBatch.append(relMem)
+                # relMemoryBatch.append(relMem)
+                subjects, relations, objects = getTuples(relMem)
+                subjectsBatch.append(subjects)
+                relationsBatch.append(relations)
+                objectsBatch.append(objects)
+                
+            subjectsBatch = formMemory(subjectsBatch, word_to_index)
+            relationsBatch = formMemory(relationsBatch, word_to_index)
+            objectsBatch = formMemory(objectsBatch, word_to_index)
+            relMemoryBatch = [subjectsBatch, relationsBatch, objectsBatch]
             
-            relMemoryBatch = formMemory(relMemoryBatch, word_to_index)
+            # relMemoryBatch = formMemory(relMemoryBatch, word_to_index)
 
             padAnswerChoices = pad_answers(answerChoicesB, word_to_index['<pad>'])
             padQuestions = pad_questions(quesB, word_to_index['<pad>'])
@@ -230,6 +270,6 @@ def test(model, data, word_to_index, memory, batch_size):
                         # print answerChoices[elem]
     
     accuracy = score / (len(data)*1.0) 
-    print("Accuracy = %f" % accuracy)
-    pkl.dump(dump_data, open("toTemplate.pkl", 'w'))
+    # pkl.dump(dump_data, open("toTemplate.pkl", 'w'))
+    model.train()
     return accuracy 

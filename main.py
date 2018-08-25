@@ -55,6 +55,7 @@ def run(args):
 
         print('Forming vocab_dictionary...')
         word_to_index = buildDictionary(trainDataSentences + trainTupleSentences)
+        print('Length of vocabulary = %d'%len(word_to_index))
 
         # tupleData, word_to_index, memory = createTupleSentences(dirKB,grad+tupleKb,save=False, word_to_index=word_to_index)
 
@@ -66,7 +67,7 @@ def run(args):
         # devMemory = prepareMemory(devTupleData, word_to_index)
         # pkl.dump(memory, open('MemorySent.pkl', 'w'))
 
-        model = Network(mem_emb_size=300, vocab_size=len(word_to_index), embedding_size=300, hops=args.hops)
+        model = Network(mem_emb_size=100, vocab_size=len(word_to_index), embedding_size=300, hops=args.hops)
 
         # filename = 'GoogleNews-vectors-negative300.bin'
         # modelW2V = KeyedVectors.load_word2vec_format(filename, binary=True)
@@ -91,16 +92,19 @@ def run(args):
             model.cuda()
         
         if(args.optim == 'sgd'):
-            optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
+            optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, weight_decay = 1e-5, momentum=0.9)
         elif(args.optim == 'adam'):
-            optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+            optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay = 1e-5)
 
+        # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
+        scheduler = None
         loss_function = nn.CrossEntropyLoss()
 
         test_data_path = os.path.join(dirname, elementary+'Test'+postfix)
         dev_data = pkl.load(open(test_data_path, 'r'))
 
-        train(model, training_data, dev_data, args.epochs, word_to_index, trainTupleData, devTupleData, loss_function, optimizer, args=args)
+        train(model, training_data, dev_data, args.epochs, word_to_index, trainTupleData, devTupleData,\
+                loss_function, optimizer, scheduler, args=args)
 
     elif args.mode == 'test':
 
@@ -111,7 +115,7 @@ def run(args):
         print('Loading vocabulary dictionary...')
         word_to_index = pkl.load((open('Dict.pkl', 'r')))
         print('Initializing model...')
-        model = Network(mem_emb_size=300, vocab_size=len(word_to_index), embedding_size=300, hops=args.hops)
+        model = Network(mem_emb_size=100, vocab_size=len(word_to_index), embedding_size=100, hops=args.hops)
         # model.load_state_dict(torch.load(grad+"_Model"))
         load_model_fp = os.path.join(args.exp_dir, grad+"_Model")
         print('Loading model %s...'%load_model_fp)

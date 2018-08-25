@@ -2,6 +2,7 @@ import os
 import json
 import csv
 import pickle as pkl
+import spacy
 
 path = 'Omnibus-Gr04-NDMC-Test.csv'
 
@@ -33,23 +34,26 @@ def parseQuestionsAndChoices(ques):
     
     return qu, choices[:-1]
 
-count = 0
+def pickleFile(path):
+    count = 0
 
-data = {}
-with open(path) as fil:
-    reader = csv.reader(fil, delimiter=',')
-    for row in reader:
-        if count == 0:
+    data = {}
+    with open(path) as fil:
+        reader = csv.reader(fil, delimiter=',')
+        for row in reader:
+            if count == 0:
+                count += 1
+                continue
+            ques = row[3]
+            answer = row[4]
             count += 1
-            continue
-        ques = row[3]
-        answer = row[4]
-        count += 1
-        ques, choices = parseQuestionsAndChoices(ques)
-        value = ques.lower().strip() + '+' + choices + '+' + answer
-        data[row[0]] = value
-        print value
+            ques, choices = parseQuestionsAndChoices(ques)
+            value = ques.lower().strip() + '+' + choices + '+' + answer
+            data[row[0]] = value
+            print value
 
-pkl.dump(data, open(path+'_.pkl', 'w'))
+    pkl.dump(data, open(path+'_.pkl', 'w'))
+    print count
 
-print count
+if __name__ == "__main__":
+    pickleFile(path)
