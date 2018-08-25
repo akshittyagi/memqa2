@@ -31,7 +31,7 @@ def pad_questions(quesB, pad_index):
 
     padQuesB = []
     for i in range(len(quesLengths)):
-        print "Max, pad", maxLength, padLengths[i]
+        # print "Max, pad", maxLength, padLengths[i]
         padQuesB.append(torch.nn.ConstantPad1d((0, padLengths[i]),pad_index)(quesB[i]))
 
     return torch.stack(padQuesB, dim=0)
@@ -46,7 +46,7 @@ def pad_answers(answerChoicesB, pad_index):
         currChoices = []
         for j in range(len(answerChoicesB[i])):
             padLength = maxLength - len(answerChoicesB[i][j])
-            print "Max, pad", maxLength, padLength
+            # print "Max, pad", maxLength, padLength
             currChoices.append(torch.nn.ConstantPad1d((0,padLength),pad_index) (answerChoicesB[i][j]))
 
         padChoicesB.append(torch.stack(currChoices, dim=0))

@@ -58,7 +58,7 @@ class Network(nn.Module):
         
         for hop in range(self.hops):
             allMemEmbed = [] 
-            for mem in allMemIndices[:50]:
+            for mem in allMemIndices:
                 allMemEmbed.append(self.dropout(self.A[hop](mem)).sum(dim=0))
 
             allMemEmbed = torch.stack(allMemEmbed, dim=0).unsqueeze(0)
