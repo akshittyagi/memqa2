@@ -12,13 +12,13 @@ import numpy as np
 from utils import getCombination, to_cuda
 
 class Network(nn.Module):
-    def __init__(self, mem_emb_size, embedding_size, vocab_size, hops=2, dropout=0.1):
+    def __init__(self, mem_emb_size, embedding_size, vocab_size, hops=2, dropout=0.3):
         super(Network, self).__init__()
         self.hops = hops
         self.embedding_size = embedding_size
         self.lstmLayer = nn.LSTM(embedding_size, embedding_size/2, batch_first=True)
         
-        self.dropout = nn.Dropout(p=0.1)
+        self.dropout = nn.Dropout(p=dropout)
         # A -> Memory
         self.A = nn.ModuleList([nn.Embedding(vocab_size, mem_emb_size) for _ in range(hops)])
         # B -> Question
@@ -26,7 +26,6 @@ class Network(nn.Module):
         # C -> Answer Choice
         self.C = nn.Embedding(vocab_size, embedding_size)
 
-        torch.nn.init.xavier_uniform(torch.FloatTensor(5,5))
         #sim for ques, mem
         self.U = Variable(to_cuda(torch.nn.init.xavier_uniform(torch.FloatTensor(mem_emb_size,embedding_size)).unsqueeze(0)))
         #sim for answ, mem
@@ -34,17 +33,18 @@ class Network(nn.Module):
         #sim for mem_q, mem_a
         self.W = Variable(to_cuda(torch.nn.init.xavier_uniform(torch.FloatTensor(mem_emb_size,mem_emb_size)).unsqueeze(0)))
 
-    def forward(self, memory, ques, answerChoices):
+    def forward(self, memoryBatch, ques, answerChoices):
         
         batch_size = len(ques)
         U = self.U.repeat(batch_size, 1, 1)
         V = self.V.repeat(batch_size, 1, 1)
         W = self.W.repeat(batch_size, 1, 1)
 
-        assert(len(ques)==len(answerChoices))
+        # assert(len(ques)==len(answerChoices)==len(memoryBatch))
 
-        allMemIndices = getCombination(memory, option=6)
+        # allMemIndices = getCombination(memoryBatch, option=6)
         
+        #import ipdb; ipdb.set_trace()
         
         u = self.dropout(self.B(ques)) # u: batch_size * max_qlength * embedding_size
         _, u = self.lstmLayer(u) 
@@ -55,16 +55,33 @@ class Network(nn.Module):
         for choice in answerChoices:
             a.append(self.C(choice).sum(dim=1))
         o_A = []
-        
+        # for hop in range(self.hops):
+        #     allMemEmbed = [] 
+        #     for mem in allMemIndices[:500]:
+        #         # import ipdb; ipdb.set_trace()
+        #         allMemEmbed.append(self.dropout(self.A[hop](mem)).sum(dim=0))
+
+        #     allMemEmbed = torch.stack(allMemEmbed, dim=0).unsqueeze(0)
+        #     allMemEmbed = allMemEmbed.repeat(batch_size, 1, 1)
         for hop in range(self.hops):
             allMemEmbed = [] 
-            for mem in allMemIndices:
-                allMemEmbed.append(self.dropout(self.A[hop](mem)).sum(dim=0))
-
-            allMemEmbed = torch.stack(allMemEmbed, dim=0).unsqueeze(0)
-            allMemEmbed = allMemEmbed.repeat(batch_size, 1, 1)
+            for memSentences in memoryBatch:
+                # import ipdb; ipdb.set_trace()
+                # currMemEmbed = []
+                # for mem in memSentences:
+                #     currMemEmbed.append(self.dropout(self.A[hop](mem)).sum(dim=0))
+                # allMemEmbed.append(torch.stack(currMemEmbed, dim=0))
+                # import ipdb; ipdb.set_trace()
+                allMemEmbed.append(self.dropout(self.A[hop](memSentences)).sum(dim=1))
+            # import ipdb; ipdb.set_trace()
+            allMemEmbed = torch.stack(allMemEmbed, dim=0)
             p_q = torch.bmm(allMemEmbed,torch.bmm(U, u.unsqueeze(1).transpose(1,2))).squeeze(2) # p_q: batch_size * size_of_memory
-            p_q = F.softmax(p_q, dim=1) 
+
+            p_q = F.log_softmax(p_q, dim=1) 
+            minVals = torch.min(p_q, dim=1)[0].unsqueeze(1)
+            p_q = p_q - minVals
+            p_q = p_q / torch.norm(p_q, p=1, dim=1).unsqueeze(1)
+        
             #o_q is ques aware mem mebdding
             o_q = torch.bmm(p_q.unsqueeze(1), allMemEmbed).squeeze(1) # o_q: batch_size * mem_embedding_size
             u = o_q + u
@@ -73,13 +90,15 @@ class Network(nn.Module):
             for choice in a:
                 # import ipdb; ipdb.set_trace()
                 p_a = torch.bmm(allMemEmbed, torch.bmm(V, choice.unsqueeze(2))).squeeze(2)
-                p_a = F.softmax(p_a, dim=1)
+                p_a = F.log_softmax(p_a, dim=1)
+                p_a = p_a / torch.norm(p_a, p=2, dim=1).unsqueeze(1)
                 #o_a is answ aware mem embedding 
                 o_a = torch.bmm(p_a.unsqueeze(1), allMemEmbed).squeeze(1) #o_a : batch_sizexmem_emb_size
                 a_nextHop.append(o_a + choice) 
                 if hop == self.hops - 1:
                     o_A.append(o_a) # o_A : 4*batch_size*mem_emb_size
             a = a_nextHop
+
 
         o_A = torch.stack(o_A, dim=0).transpose(0,1).transpose(1,2) # o_A : 4*batch_size*mem_emb_size -> batch_sizex4*mem_embed_size -> batch_size*mem_embed_size*4
         
